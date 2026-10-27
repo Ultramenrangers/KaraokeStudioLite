@@ -1,0 +1,54 @@
+
+name: Build KaraokeStudioLite APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract app.zip
+        run: |
+          mkdir -p /tmp/appzip
+          unzip -o app.zip -d /tmp/appzip
+          if [ -d /tmp/appzip/app ]; then
+            cp -a /tmp/appzip/app ./app
+          elif [ -d /tmp/appzip/src ]; then
+            mkdir -p app
+            cp -a /tmp/appzip/. ./app/
+          else
+            echo "Struktur app.zip tidak dikenali"
+            find /tmp/appzip -maxdepth 3 -type f
+            exit 1
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: KaraokeStudioLite-debug
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
